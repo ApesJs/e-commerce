@@ -49,6 +49,23 @@ func (server *Server) initializeDB() {
 		log.Fatal("cannot migrate database models:", err)
 		return
 	}
+
+	//for i := 1; i <= 10; i++ {
+	//fUser := fakers.UserFaker(server.DB)
+	//err = server.DB.Create(&fUser).Error
+	//if err != nil {
+	//	fmt.Println("Error inserting user:", err)
+	//	return
+	//}
+
+	//	fProduct := fakers.ProductFaker(server.DB)
+	//	err = server.DB.Create(&fProduct).Error
+	//	if err != nil {
+	//		fmt.Println("Error inserting user:", err)
+	//		return
+	//	}
+	//}
+
 }
 
 func (server *Server) Run(addr string) {
