@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func Home(w http.ResponseWriter, r *http.Request) {
+func (server *Server) Home(w http.ResponseWriter, r *http.Request) {
 	render := render2.New(render2.Options{
 		Layout: "layout",
 	})
