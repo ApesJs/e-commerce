@@ -2,17 +2,42 @@ package controllers
 
 import (
 	"e-commerce/app/models"
+	"fmt"
 	"github.com/gorilla/mux"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type Server struct {
 	DB     *gorm.DB
 	Router *mux.Router
+}
+
+type PageLink struct {
+	Page          int32
+	Url           string
+	IsCurrentPage bool
+}
+
+type PaginationLinks struct {
+	CurrentPage string
+	NextPage    string
+	PrevPage    string
+	TotalRows   int32
+	TotalPages  int32
+	Links       []PageLink
+}
+
+type PaginationParams struct {
+	Path        string
+	TotalRows   int32
+	PerPage     int32
+	CurrentPage int32
 }
 
 func (server *Server) Initialize() {
@@ -73,4 +98,40 @@ func (server *Server) Run(addr string) {
 		log.Fatal("cannot run server:", err)
 		return
 	}
+}
+
+func GetPaginationLinks(params PaginationParams) (PaginationLinks, error) {
+	var links []PageLink
+	totalPages := int32(math.Ceil(float64(params.TotalRows) / float64(params.PerPage)))
+
+	for i := 1; int32(i) <= totalPages; i++ {
+		links = append(links, PageLink{
+			Page:          int32(i),
+			Url:           fmt.Sprintf("%s/%s?page=%s", os.Getenv("APP_URL"), params.Path, fmt.Sprintf(strconv.Itoa(i))),
+			IsCurrentPage: int32(i) == params.CurrentPage,
+		})
+	}
+
+	var nextPage int32
+	var prevPage int32
+
+	prevPage = 1
+	nextPage = totalPages
+
+	if params.CurrentPage > 2 {
+		prevPage = params.CurrentPage - 1
+	}
+
+	if params.CurrentPage < totalPages {
+		nextPage = params.CurrentPage + 1
+	}
+
+	return PaginationLinks{
+		CurrentPage: fmt.Sprintf("%s/%s?page=%s", os.Getenv("APP_URL"), params.Path, fmt.Sprintf(string(params.CurrentPage))),
+		NextPage:    fmt.Sprintf("%s/%s?page=%s", os.Getenv("APP_URL"), params.Path, fmt.Sprintf(string(nextPage))),
+		PrevPage:    fmt.Sprintf("%s/%s?page=%s", os.Getenv("APP_URL"), params.Path, fmt.Sprintf(string(prevPage))),
+		TotalRows:   params.TotalRows,
+		TotalPages:  totalPages,
+		Links:       links,
+	}, nil
 }
