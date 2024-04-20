@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"e-commerce/app/models"
+	"github.com/gorilla/mux"
 	render2 "github.com/unrolled/render"
 	"log"
 	"net/http"
@@ -37,5 +38,26 @@ func (server *Server) Products(w http.ResponseWriter, r *http.Request) {
 	_ = render.HTML(w, http.StatusOK, "products", map[string]interface{}{
 		"products":   products,
 		"pagination": pagination,
+	})
+}
+
+func (server *Server) GetProductBySlug(w http.ResponseWriter, r *http.Request) {
+	render := render2.New(render2.Options{
+		Layout: "layout",
+	})
+
+	vars := mux.Vars(r)
+	if vars["slug"] == "" {
+		return
+	}
+
+	productModel := models.Product{}
+	product, err := productModel.FindBySlug(server.DB, vars["slug"])
+	if err != nil {
+		return
+	}
+
+	_ = render.HTML(w, http.StatusOK, "product", map[string]interface{}{
+		"product": product,
 	})
 }
