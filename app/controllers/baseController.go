@@ -4,6 +4,7 @@ import (
 	"e-commerce/app/models"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -40,6 +41,9 @@ type PaginationParams struct {
 	CurrentPage int32
 }
 
+var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+var sessionShoppingCart = "shopping-cart-session"
+
 func (server *Server) Initialize() {
 	server.initializeDB()
 	server.initializeRoutes()
@@ -56,6 +60,8 @@ func (server *Server) initializeDB() {
 
 	allModels := []interface{}{
 		&models.Address{},
+		&models.Cart{},
+		&models.CartItem{},
 		&models.Category{},
 		&models.OrderCustomer{},
 		&models.OrderItem{},
