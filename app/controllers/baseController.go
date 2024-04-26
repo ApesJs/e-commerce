@@ -41,7 +41,8 @@ type PaginationParams struct {
 	CurrentPage int32
 }
 
-var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+// nanti coba kembangkan agar hash key mengambil dari file .env
+var store = sessions.NewCookieStore([]byte("apes-session-key"))
 var sessionShoppingCart = "shopping-cart-session"
 
 func (server *Server) Initialize() {
