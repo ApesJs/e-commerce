@@ -27,20 +27,18 @@ func GetShoppingCart(db *gorm.DB, cartID string) (*models.Cart, error) {
 		existCart, _ = cart.CreateCart(db, cartID)
 	}
 
+	_, _ = existCart.CalculateCart(db, cartID)
+
 	return existCart, nil
 }
 
 func (server *Server) GetCart(w http.ResponseWriter, r *http.Request) {
-	//var cart *models.Cart
-	//
-	//cartID, err := GetShoppingCartID(w, r)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//cart, _ = GetShoppingCart(server.DB, cartID)
-	//
-	//fmt.Println(cart.ID)
+	var cart *models.Cart
+
+	cartID := GetShoppingCartID(w, r)
+	cart, _ = GetShoppingCart(server.DB, cartID)
+
+	fmt.Println(cart.ID)
 }
 
 func (server *Server) AddItemToCart(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +59,13 @@ func (server *Server) AddItemToCart(w http.ResponseWriter, r *http.Request) {
 
 	cartID := GetShoppingCartID(w, r)
 	cart, _ = GetShoppingCart(server.DB, cartID)
+	_, err = cart.AddItem(server.DB, models.CartItem{
+		ProductID: productID,
+		Qty:       qty,
+	})
+	if err != nil {
+		http.Redirect(w, r, "/products/"+product.Slug, http.StatusSeeOther)
+	}
 
-	fmt.Println(cart.ID)
 	http.Redirect(w, r, "/carts", http.StatusSeeOther)
 }
