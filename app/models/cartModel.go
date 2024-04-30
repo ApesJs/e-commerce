@@ -131,3 +131,53 @@ func (c *Cart) AddItem(db *gorm.DB, item CartItem) (*CartItem, error) {
 
 	return &item, nil
 }
+
+func (c *Cart) UpdateItemQty(db *gorm.DB, itemID string, qty int) (*CartItem, error) {
+	var existItem, updateItem CartItem
+
+	err := db.Model(CartItem{}).Where("id = ?", itemID).First(&existItem).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var product Product
+
+	err = db.Model(Product{}).Where("id = ?", existItem.ProductID).First(&product).Error
+	if err != nil {
+		return nil, err
+	}
+
+	basePrice, _ := product.Price.Float64()
+	taxAmount := GetTaxAmount(basePrice)
+	discountAmount := 0.0
+
+	updateItem.Qty = qty
+	updateItem.BaseTotal = decimal.NewFromFloat(basePrice * float64(updateItem.Qty))
+
+	subTotal := float64(updateItem.Qty) * (basePrice + taxAmount - discountAmount)
+	updateItem.SubTotal = decimal.NewFromFloat(subTotal)
+
+	err = db.Model(&CartItem{}).Where("id = ?", existItem.ID).Updates(updateItem).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &existItem, nil
+}
+
+func (c *Cart) RemoveItemByID(db *gorm.DB, itemID string) error {
+	var err error
+	var item CartItem
+
+	err = db.Model(&CartItem{}).Where("id = ?", itemID).First(&item).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Delete(&item).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
