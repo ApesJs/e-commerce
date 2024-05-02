@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"e-commerce/app/models"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	render2 "github.com/unrolled/render"
 	"gorm.io/gorm"
+	"log"
+	"math"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -33,21 +37,39 @@ func GetShoppingCart(db *gorm.DB, cartID string) (*models.Cart, error) {
 
 	updateCart, _ := cart.GetCart(db, cartID)
 
+	totalWeight := 0
+	productModel := models.Product{}
+	for _, cartItem := range updateCart.CartItems {
+		product, _ := productModel.FindByID(db, cartItem.ProductID)
+		productWeight, _ := product.Weight.Float64()
+		ceilWeight := math.Ceil(productWeight)
+		itemWeight := cartItem.Qty * int(ceilWeight)
+		totalWeight += itemWeight
+	}
+
+	updateCart.TotalWeight = totalWeight
+
 	return updateCart, nil
 }
 
 func (server *Server) GetCart(w http.ResponseWriter, r *http.Request) {
 	render := render2.New(render2.Options{
-		Layout: "layout",
+		Layout:     "layout",
+		Extensions: []string{".html"},
 	})
 
 	var cart *models.Cart
 
 	cartID := GetShoppingCartID(w, r)
 	cart, _ = GetShoppingCart(server.DB, cartID)
+	provinces, err := server.GetProvinces()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	_ = render.HTML(w, http.StatusOK, "cart", map[string]interface{}{
-		"cart": cart,
+		"cart":      cart,
+		"provinces": provinces,
 	})
 }
 
@@ -112,4 +134,54 @@ func (server *Server) RemoveItemByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/carts", http.StatusSeeOther)
+}
+
+func (server *Server) GetCitiesByProvince(w http.ResponseWriter, r *http.Request) {
+	provinceID := r.URL.Query().Get("province_id")
+
+	cities, err := server.GetCitiesByProvinceID(provinceID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res := Result{
+		Code:    200,
+		Data:    cities,
+		Message: "Success",
+	}
+	result, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(result)
+}
+
+func (server *Server) CalculateShipping(w http.ResponseWriter, r *http.Request) {
+	origin := os.Getenv("API_ONGKIR_ORIGIN")
+	destination := r.FormValue("city_id")
+	courier := r.FormValue("courier")
+
+	if destination == "" {
+		http.Error(w, "invalid destination", http.StatusInternalServerError)
+	}
+
+	cartID := GetShoppingCartID(w, r)
+	cart, _ := GetShoppingCart(server.DB, cartID)
+
+	shippingFeeOption, err := server.CalculateShippingFee(models.ShippingFeeParams{
+		Origin:      origin,
+		Destination: destination,
+		Weight:      cart.TotalWeight,
+		Courier:     courier,
+	})
+
+	if err != nil {
+		http.Error(w, "calculatin failed", http.StatusInternalServerError)
+	}
+
+	fmt.Println(shippingFeeOption, "TAHHHH")
 }

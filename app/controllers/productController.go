@@ -11,7 +11,8 @@ import (
 
 func (server *Server) Products(w http.ResponseWriter, r *http.Request) {
 	render := render2.New(render2.Options{
-		Layout: "layout",
+		Layout:     "layout",
+		Extensions: []string{".html"},
 	})
 
 	q := r.URL.Query()
@@ -43,7 +44,8 @@ func (server *Server) Products(w http.ResponseWriter, r *http.Request) {
 
 func (server *Server) GetProductBySlug(w http.ResponseWriter, r *http.Request) {
 	render := render2.New(render2.Options{
-		Layout: "layout",
+		Layout:     "layout",
+		Extensions: []string{".html"},
 	})
 
 	vars := mux.Vars(r)

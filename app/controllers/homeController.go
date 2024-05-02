@@ -7,7 +7,8 @@ import (
 
 func (server *Server) Home(w http.ResponseWriter, r *http.Request) {
 	render := render2.New(render2.Options{
-		Layout: "layout",
+		Layout:     "layout",
+		Extensions: []string{".html"},
 	})
 
 	_ = render.HTML(w, http.StatusOK, "home", map[string]interface{}{
