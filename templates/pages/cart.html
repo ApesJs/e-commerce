@@ -80,18 +80,15 @@
                     <form method="POST" id="calculate-shipping" action="/orders/checkout">
                         <table class="table table-striped">
                             <tr>
-                                <th>Sub Total
-                                <th>
+                                <th>Sub Total</th>
                                 <td>{{ .cart.BaseTotalPrice }}</td>
                             </tr>
                             <tr>
-                                <th>Tax ({{ .cart.TaxPercent }}%)
-                                <th>
+                                <th>Tax ({{ .cart.TaxPercent }}%) </th>
                                 <td>{{ .cart.TaxAmount }}</td>
                             </tr>
                             <tr>
-                                <th>Shipping
-                                <th>
+                                <th>Shipping </th>
                                 <td>
                                     <div id="shipping-calculation-msg"></div>
                                     <div class="form-group">
@@ -119,13 +116,11 @@
                                 </td>
                             </tr>
                             <tr>
-                                <th>Total
-                                <th/>
+                                <th>Total<th/>
                                 <td><strong><span id="grand-total">{{ .cart.GrandTotal }}</span></strong></td>
                             </tr>
                             <tr>
-                                <th>Detail Pengiriman
-                                <th>
+                                <th>Detail Pengiriman</th>
                                 <td>
                                     <div class="form-group">
                                         <input type="text" name="first_name" class="form-control" value=""

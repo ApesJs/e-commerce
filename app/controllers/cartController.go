@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/shopspring/decimal"
 	render2 "github.com/unrolled/render"
 	"gorm.io/gorm"
 	"log"
@@ -172,7 +173,7 @@ func (server *Server) CalculateShipping(w http.ResponseWriter, r *http.Request) 
 	cartID := GetShoppingCartID(w, r)
 	cart, _ := GetShoppingCart(server.DB, cartID)
 
-	shippingFeeOption, err := server.CalculateShippingFee(models.ShippingFeeParams{
+	shippingFeeOptions, err := server.CalculateShippingFee(models.ShippingFeeParams{
 		Origin:      origin,
 		Destination: destination,
 		Weight:      cart.TotalWeight,
@@ -180,8 +181,82 @@ func (server *Server) CalculateShipping(w http.ResponseWriter, r *http.Request) 
 	})
 
 	if err != nil {
-		http.Error(w, "calculatin failed", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	fmt.Println(shippingFeeOption, "TAHHHH")
+	res := Result{
+		Code:    200,
+		Data:    shippingFeeOptions,
+		Message: "Success",
+	}
+	result, _ := json.Marshal(res)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(result)
+}
+
+func (server *Server) ApplyShipping(w http.ResponseWriter, r *http.Request) {
+	origin := os.Getenv("API_ONGKIR_ORIGIN")
+	destination := r.FormValue("city_id")
+	courier := r.FormValue("courier")
+	shippingPackage := r.FormValue("shipping_package")
+
+	cartID := GetShoppingCartID(w, r)
+	cart, _ := GetShoppingCart(server.DB, cartID)
+
+	if destination == "" {
+		http.Error(w, "invalid destination", http.StatusInternalServerError)
+	}
+
+	shippingFeeOptions, err := server.CalculateShippingFee(models.ShippingFeeParams{
+		Origin:      origin,
+		Destination: destination,
+		Weight:      cart.TotalWeight,
+		Courier:     courier,
+	})
+
+	if err != nil {
+		http.Error(w, "invalid shipping calculation", http.StatusInternalServerError)
+	}
+
+	var selectedShipping models.ShippingFeeOption
+
+	for _, shippingOption := range shippingFeeOptions {
+		if shippingOption.Service == shippingPackage {
+			selectedShipping = shippingOption
+			continue
+		}
+	}
+
+	type ApplyShippingResponse struct {
+		TotalOrder  decimal.Decimal `json:"total_order"`
+		ShippingFee decimal.Decimal `json:"shipping_fee"`
+		GrandTotal  decimal.Decimal `json:"grand_total"`
+		TotalWeight decimal.Decimal `json:"total_weight"`
+	}
+
+	var grandTotal float64
+
+	cartGrandTotal, _ := cart.GrandTotal.Float64()
+	shippingFee := float64(selectedShipping.Fee)
+	grandTotal = cartGrandTotal + shippingFee
+
+	applyShippingResponse := ApplyShippingResponse{
+		TotalOrder:  cart.GrandTotal,
+		ShippingFee: decimal.NewFromInt(selectedShipping.Fee),
+		GrandTotal:  decimal.NewFromFloat(grandTotal),
+		TotalWeight: decimal.NewFromInt(int64(cart.TotalWeight)),
+	}
+
+	res := Result{
+		Code:    200,
+		Data:    applyShippingResponse,
+		Message: "Success",
+	}
+	result, _ := json.Marshal(res)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(result)
 }

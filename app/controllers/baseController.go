@@ -63,11 +63,8 @@ func (server *Server) Initialize() {
 func (server *Server) initializeDB() {
 	var err error
 
-	//server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE")))
-	server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE2")), &gorm.Config{})
-	if err != nil {
-		panic("Failed connect to DB")
-	}
+	server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE")))
+	//server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE2")), &gorm.Config{})
 	if err != nil {
 		log.Fatal("cannot connect to database:", err)
 		return
@@ -231,7 +228,15 @@ func (server *Server) CalculateShippingFee(shippingParams models.ShippingFeePara
 		return nil, jsonErr
 	}
 
-	fmt.Println(ongkirResponse)
+	var shippingFeeOptions []models.ShippingFeeOption
+	for _, result := range ongkirResponse.OngkirData.Results {
+		for _, cost := range result.Costs {
+			shippingFeeOptions = append(shippingFeeOptions, models.ShippingFeeOption{
+				Service: cost.Service,
+				Fee:     cost.Cost[0].Value,
+			})
+		}
+	}
 
-	return nil, nil
+	return shippingFeeOptions, nil
 }

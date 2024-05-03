@@ -42,7 +42,7 @@ type ShippingFeeParams struct {
 type OngkirData struct {
 	OriginDetails      OriginDetails      `json:"origin_details"`
 	DestinationDetails DestinationDetails `json:"destination_details"`
-	Result             []OngkirResult     `json:"result"`
+	Results            []OngkirResult     `json:"results"`
 }
 
 type OriginDetails struct {
