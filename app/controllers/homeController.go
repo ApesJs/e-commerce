@@ -14,5 +14,6 @@ func (server *Server) Home(w http.ResponseWriter, r *http.Request) {
 	_ = render.HTML(w, http.StatusOK, "home", map[string]interface{}{
 		"title": "Home Title",
 		"body":  "Home Body",
+		"user":  server.CurrentUser(w, r),
 	})
 }

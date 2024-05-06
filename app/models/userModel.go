@@ -2,6 +2,7 @@ package models
 
 import (
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -16,4 +17,28 @@ type User struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     gorm.DeletedAt
+}
+
+func (u *User) FindByEmail(db *gorm.DB, email string) (*User, error) {
+	var err error
+	var user User
+
+	err = db.Model(User{}).Where("LOWER(email) = ?", strings.ToLower(email)).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (u *User) FindByID(db *gorm.DB, userID string) (*User, error) {
+	var err error
+	var user User
+
+	err = db.Model(User{}).Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
