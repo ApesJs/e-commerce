@@ -1,10 +1,16 @@
 package controllers
 
 import (
+	"database/sql"
 	"e-commerce/app/consts"
 	"e-commerce/app/models"
 	"errors"
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
+	"github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/snap"
 	"github.com/shopspring/decimal"
+	render2 "github.com/unrolled/render"
 	"net/http"
 	"os"
 	"time"
@@ -84,6 +90,32 @@ func (server *Server) Checkout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/orders/"+order.ID, http.StatusSeeOther)
 }
 
+func (server *Server) ShowOrder(w http.ResponseWriter, r *http.Request) {
+	render := render2.New(render2.Options{
+		Layout:     "layout",
+		Extensions: []string{".html"},
+	})
+
+	vars := mux.Vars(r)
+	if vars["id"] == "" {
+		http.Redirect(w, r, "/products", http.StatusSeeOther)
+		return
+	}
+
+	orderModel := models.Order{}
+	order, err := orderModel.FindByID(server.DB, vars["id"])
+	if err != nil {
+		http.Redirect(w, r, "/products", http.StatusSeeOther)
+		return
+	}
+
+	_ = render.HTML(w, http.StatusOK, "show_order", map[string]interface{}{
+		"order":   order,
+		"success": GetFlash(w, r, "success"),
+		"user":    server.CurrentUser(w, r),
+	})
+}
+
 func (server *Server) getSelectedShippingCost(w http.ResponseWriter, r *http.Request) (float64, error) {
 	origin := os.Getenv("API_ONGKIR_ORIGIN")
 	destination := r.FormValue("city_id")
@@ -121,6 +153,10 @@ func (server *Server) getSelectedShippingCost(w http.ResponseWriter, r *http.Req
 func (server *Server) SaveOrder(user *models.User, r *CheckoutRequest) (*models.Order, error) {
 	var orderItems []models.OrderItem
 
+	orderID := uuid.New().String()
+
+	paymentURL, err := server.createPaymentURL(user, r, orderID)
+
 	if len(r.Cart.CartItems) > 0 {
 		for _, cartItem := range r.Cart.CartItems {
 			orderItems = append(orderItems, models.OrderItem{
@@ -154,7 +190,7 @@ func (server *Server) SaveOrder(user *models.User, r *CheckoutRequest) (*models.
 	}
 
 	orderData := &models.Order{
-		//ID:                  uuid.New().String(),
+		ID:                  orderID,
 		UserID:              user.ID,
 		OrderItems:          orderItems,
 		OrderCustomer:       orderCustomer,
@@ -171,7 +207,7 @@ func (server *Server) SaveOrder(user *models.User, r *CheckoutRequest) (*models.
 		GrandTotal:          r.Cart.GrandTotal,
 		ShippingCourier:     r.ShippingFee.Courier,
 		ShippingServiceName: r.ShippingFee.PackageName,
-		//PaymentToken:        sql.NullString{String: paymentURL, Valid: true},
+		PaymentToken:        sql.NullString{String: paymentURL, Valid: true},
 	}
 
 	orderModel := models.Order{}
@@ -181,4 +217,30 @@ func (server *Server) SaveOrder(user *models.User, r *CheckoutRequest) (*models.
 	}
 
 	return order, nil
+}
+
+func (server *Server) createPaymentURL(user *models.User, r *CheckoutRequest, orderID string) (string, error) {
+	midtrans.ServerKey = os.Getenv("API_MIDTRANS_SERVER_KEY")
+
+	var enablePaymentTypes []snap.SnapPaymentType
+
+	snapRequest := &snap.Request{
+		TransactionDetails: midtrans.TransactionDetails{
+			OrderID:  orderID,
+			GrossAmt: r.Cart.GrandTotal.IntPart(),
+		},
+		CustomerDetail: &midtrans.CustomerDetails{
+			FName: user.FirstName,
+			LName: user.LastName,
+			Email: user.Email,
+		},
+		EnabledPayments: enablePaymentTypes,
+	}
+
+	snapResponse, err := snap.CreateTransaction(snapRequest)
+	if err != nil {
+		return "", err
+	}
+
+	return snapResponse.RedirectURL, nil
 }

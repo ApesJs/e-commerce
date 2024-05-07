@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"e-commerce/app/consts"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -59,6 +60,44 @@ func (o *Order) CreateOrder(db *gorm.DB, order *Order) (*Order, error) {
 	}
 
 	return order, nil
+}
+
+func (o *Order) FindByID(db *gorm.DB, id string) (*Order, error) {
+	var order Order
+
+	err := db.
+		Preload("OrderCustomer").
+		Preload("OrderItems").
+		Preload("OrderItems.Product").
+		Preload("User").
+		Model(&Order{}).Where("id = ?", id).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (o *Order) GetStatusLabel() string {
+	var statusLabel string
+
+	if o.Status == consts.OrderStatusPending {
+		statusLabel = "PENDING"
+	} else if o.Status == consts.OrderStatusDelivered {
+		statusLabel = "DELIVERED"
+	} else if o.Status == consts.OrderStatusReceived {
+		statusLabel = "RECEIVED"
+	} else if o.Status == consts.OrderStatusCancelled {
+		statusLabel = "CANCELED"
+	} else {
+		statusLabel = "UNKNOWN"
+	}
+
+	return statusLabel
+}
+
+func (o *Order) IsPaid() bool {
+	return o.PaymentStatus == consts.OrderPaymentStatusPaid
 }
 
 func generateOrderNumber(db *gorm.DB) string {
