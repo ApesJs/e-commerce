@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"time"
+)
 
 type OrderCustomer struct {
 	ID         string `gorm:"size:36;not null;uniqueIndex;primary_key"`
@@ -19,4 +23,12 @@ type OrderCustomer struct {
 	PostCode   string `gorm:"size:100;"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+func (o *OrderCustomer) BeforeCreate(db *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+
+	return nil
 }
