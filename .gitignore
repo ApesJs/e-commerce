@@ -35,4 +35,5 @@ air
 CHANGELOG
 dump.rdb
 tmp
+.env
 coverage.out
