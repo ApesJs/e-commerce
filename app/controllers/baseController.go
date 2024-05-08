@@ -52,7 +52,7 @@ type Result struct {
 	Message string      `json:"message"`
 }
 
-// nanti coba kembangkan agar hash key mengambil dari file .env
+// todo: nanti coba kembangkan agar hash key mengambil dari file .env
 var store = sessions.NewCookieStore([]byte("apes-session-key"))
 var sessionShoppingCart = "shopping-cart-session"
 var sessionFlash = "flash-session"

@@ -100,3 +100,12 @@ func generatePaymentNumber(db *gorm.DB) string {
 
 	return invoiceNumber
 }
+
+func (p *Payment) CreatePayment(db *gorm.DB, payment *Payment) (*Payment, error) {
+	result := db.Create(payment)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return payment, nil
+}
