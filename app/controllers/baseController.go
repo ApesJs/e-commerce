@@ -66,8 +66,8 @@ func (server *Server) Initialize() {
 func (server *Server) initializeDB() {
 	var err error
 
-	server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE")))
-	//server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE2")), &gorm.Config{})
+	//server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE")))
+	server.DB, err = gorm.Open(postgres.Open(os.Getenv("DB_SOURCE2")), &gorm.Config{})
 	if err != nil {
 		log.Fatal("cannot connect to database:", err)
 		return
